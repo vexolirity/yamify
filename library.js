@@ -1,13 +1,8 @@
 // ============================================
-// YAMIFY ULTIMATE - Library Module
-// Load, Render, Search, Sort, Filter
+// YAMIFY - Library Module FINAL
 // ============================================
 
-let currentSort = 'recent'; // recent, az, za, plays
-let currentFilter = 'all';
-let searchQuery = '';
-
-async function loadAllSongs() {
+window.loadAllSongs = async function() {
     const { data, error } = await supabase
         .from('songs')
         .select('*')
@@ -19,81 +14,63 @@ async function loadAllSongs() {
         return;
     }
     
-    allSongs = data || [];
-    renderLibrary();
-    renderTopCharts();
-    updateStatsCount();
-}
+    window.allSongs = data || [];
+    if (window.renderLibrary) window.renderLibrary();
+    if (window.renderTopCharts) window.renderTopCharts();
+    if (window.updateStatsCount) window.updateStatsCount();
+};
 
-function renderLibrary() {
+window.renderLibrary = function() {
     const container = document.getElementById('libraryGrid');
     if (!container) return;
     
-    let filteredSongs = [...allSongs];
+    let filteredSongs = [...window.allSongs];
     
-    // Apply search filter
-    if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+    if (window.searchQuery) {
+        const query = window.searchQuery.toLowerCase();
         filteredSongs = filteredSongs.filter(song => 
             song.title.toLowerCase().includes(query) ||
             song.artist.toLowerCase().includes(query)
         );
     }
     
-    // Apply sort
-    switch(currentSort) {
-        case 'az':
-            filteredSongs.sort((a, b) => a.title.localeCompare(b.title));
-            break;
-        case 'za':
-            filteredSongs.sort((a, b) => b.title.localeCompare(a.title));
-            break;
-        case 'plays':
-            filteredSongs.sort((a, b) => (b.play_count || 0) - (a.play_count || 0));
-            break;
-        case 'recent':
-        default:
-            filteredSongs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            break;
+    if (window.currentSort === 'az') {
+        filteredSongs.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (window.currentSort === 'za') {
+        filteredSongs.sort((a, b) => b.title.localeCompare(a.title));
+    } else if (window.currentSort === 'plays') {
+        filteredSongs.sort((a, b) => (b.play_count || 0) - (a.play_count || 0));
+    } else {
+        filteredSongs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
     
     if (filteredSongs.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <span>🎵</span>
-                <p>${searchQuery ? 'Lagu tidak ditemukan' : 'Belum ada lagu'}</p>
-                ${!searchQuery ? '<button onclick="showPanel(\'upload\')">+ Upload Lagu</button>' : ''}
-            </div>
-        `;
+        container.innerHTML = `<div class="empty-state"><span>🎵</span><p>${window.searchQuery ? 'Lagu tidak ditemukan' : 'Belum ada lagu'}</p></div>`;
         return;
     }
     
     container.innerHTML = filteredSongs.map(song => `
-        <div class="song-card" data-song-id="${song.id}">
+        <div class="song-card">
             <div class="song-cover-wrapper">
-                <img class="song-cover" src="${song.cover_url || 'https://picsum.photos/200/200?random=' + song.id}" alt="${escapeHtml(song.title)}" loading="lazy" onerror="this.src='https://picsum.photos/200/200'">
-                <div class="play-overlay" onclick="event.stopPropagation(); playSongById('${song.id}')">
+                <img class="song-cover" src="${song.cover_url || 'https://picsum.photos/200/200?random=' + song.id}" onerror="this.src='https://picsum.photos/200/200'">
+                <div class="play-overlay" onclick="event.stopPropagation(); window.playSongById('${song.id}')">
                     <span>▶️</span>
                 </div>
-                <div class="like-btn-card ${userLikedSongs.has(song.id) ? 'liked' : ''}" onclick="event.stopPropagation(); toggleLike('${song.id}')">
-                    <span>${userLikedSongs.has(song.id) ? '❤️' : '🤍'}</span>
+                <div class="like-btn-card ${window.userLikedSongs?.has(song.id) ? 'liked' : ''}" onclick="event.stopPropagation(); window.toggleLike('${song.id}')">
+                    <span>${window.userLikedSongs?.has(song.id) ? '❤️' : '🤍'}</span>
                 </div>
             </div>
-            <div class="song-title" onclick="playSongById('${song.id}')">${escapeHtml(song.title)}</div>
-            <div class="song-artist" onclick="playSongById('${song.id}')">${escapeHtml(song.artist)}</div>
-            <div class="song-stats">
-                <span>🎧 ${song.play_count || 0}</span>
-                <span>⏱️ ${formatDuration(song.duration)}</span>
-            </div>
+            <div class="song-title" onclick="window.playSongById('${song.id}')">${escapeHtml(song.title)}</div>
+            <div class="song-artist" onclick="window.playSongById('${song.id}')">${escapeHtml(song.artist)}</div>
         </div>
     `).join('');
-}
+};
 
-function renderTopCharts() {
+window.renderTopCharts = function() {
     const container = document.getElementById('topGrid');
     if (!container) return;
     
-    const topSongs = [...allSongs]
+    const topSongs = [...window.allSongs]
         .sort((a, b) => (b.play_count || 0) - (a.play_count || 0))
         .slice(0, 50);
     
@@ -103,74 +80,35 @@ function renderTopCharts() {
     }
     
     container.innerHTML = topSongs.map((song, index) => `
-        <div class="top-chart-item" onclick="playSongById('${song.id}')">
-            <div class="top-chart-rank">#${index + 1}</div>
-            <img class="top-chart-cover" src="${song.cover_url || 'https://picsum.photos/50/50'}" onerror="this.src='https://picsum.photos/50/50'">
-            <div class="top-chart-info">
-                <div class="top-chart-title">${escapeHtml(song.title)}</div>
-                <div class="top-chart-artist">${escapeHtml(song.artist)}</div>
+        <div style="display:flex;align-items:center;gap:16px;padding:12px;background:var(--bg-card);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="window.playSongById('${song.id}')">
+            <div style="font-size:24px;font-weight:800;color:var(--accent);width:50px">#${index + 1}</div>
+            <img src="${song.cover_url || 'https://picsum.photos/50/50'}" style="width:50px;height:50px;border-radius:6px;object-fit:cover">
+            <div style="flex:1">
+                <div style="font-weight:600">${escapeHtml(song.title)}</div>
+                <div style="font-size:12px;color:var(--text-secondary)">${escapeHtml(song.artist)}</div>
             </div>
-            <div class="top-chart-plays">${song.play_count || 0} plays</div>
+            <div style="font-size:12px;color:var(--accent)">${song.play_count || 0} plays</div>
         </div>
     `).join('');
-}
+};
 
-function filterSongs(query) {
-    searchQuery = query;
-    renderLibrary();
-}
+window.filterSongs = function(query) {
+    window.searchQuery = query;
+    window.renderLibrary();
+};
 
-function sortSongs(sortType) {
-    currentSort = sortType;
-    renderLibrary();
-    
-    // Update button text
-    const sortBtn = document.getElementById('sortBtn');
-    const sortText = {
-        recent: 'Sort by 📅 Recent',
-        az: 'Sort by A → Z',
-        za: 'Sort by Z → A',
-        plays: 'Sort by 🔥 Most Played'
-    };
-    if (sortBtn) sortBtn.innerHTML = sortText[sortType] || sortText.recent;
-}
+window.sortSongs = function(sortType) {
+    window.currentSort = sortType;
+    window.renderLibrary();
+};
 
-function playSongById(songId) {
-    const song = allSongs.find(s => s.id === songId);
-    if (song) {
-        playSong(song);
+window.playSongById = function(songId) {
+    const song = window.allSongs.find(s => s.id === songId);
+    if (song && window.playSong) {
+        window.playSong(song);
     } else {
         showToast('Lagu tidak ditemukan', 2000, 'error');
     }
-}
+};
 
-function updateStatsCount() {
-    const songCountEl = document.getElementById('songCount');
-    if (songCountEl && !currentUser) {
-        songCountEl.textContent = allSongs.length;
-    }
-}
-
-// Search input listener
-document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce((e) => filterSongs(e.target.value), 300));
-    }
-    
-    const sortBtn = document.getElementById('sortBtn');
-    if (sortBtn) {
-        let sortIndex = 0;
-        const sorts = ['recent', 'az', 'za', 'plays'];
-        sortBtn.addEventListener('click', () => {
-            sortIndex = (sortIndex + 1) % sorts.length;
-            sortSongs(sorts[sortIndex]);
-        });
-    }
-});
-
-window.playSongById = playSongById;
-window.filterSongs = filterSongs;
-window.sortSongs = sortSongs;
-window.renderLibrary = renderLibrary;
-window.renderTopCharts = renderTopCharts;
+console.log('✅ Library module ready');
