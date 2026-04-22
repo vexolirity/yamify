@@ -1,9 +1,13 @@
+// ============================================
+// YAMIFY - CONFIGURATION
+// ============================================
+
 const SUPABASE_URL = 'https://vsonrlptlfuomdawpewa.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_s6ifPt76DmLW9DJaUD_6cw_SQnbiblp';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Global state
+window.supabase = supabase;
 window.currentUser = null;
 window.allSongs = [];
 window.userLikedSongs = new Set();
@@ -11,7 +15,6 @@ window.userPlaylists = [];
 window.currentPlayingSong = null;
 window.audioElement = null;
 window.isPlaying = false;
-window.currentQueue = [];
 
 function formatDuration(seconds) {
     if (!seconds || isNaN(seconds)) return '0:00';
@@ -25,21 +28,15 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 }
 
-function showToast(message, duration = 2000) {
-    let toast = document.getElementById('globalToast');
+function showToast(msg, duration = 2000) {
+    let toast = document.getElementById('toast');
     if (!toast) {
         toast = document.createElement('div');
-        toast.id = 'globalToast';
+        toast.id = 'toast';
         document.body.appendChild(toast);
     }
-    toast.style.cssText = `
-        position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-        background: #1DB954; color: #000; padding: 14px 28px;
-        border-radius: 500px; font-size: 14px; font-weight: 600;
-        z-index: 1000; opacity: 0; transition: 0.2s; pointer-events: none;
-        white-space: nowrap; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    `;
-    toast.textContent = message;
+    toast.style.cssText = `position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#1DB954;color:#000;padding:12px 24px;border-radius:500px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:0.2s;white-space:nowrap`;
+    toast.textContent = msg;
     toast.style.opacity = '1';
     setTimeout(() => toast.style.opacity = '0', duration);
 }
@@ -47,4 +44,5 @@ function showToast(message, duration = 2000) {
 window.formatDuration = formatDuration;
 window.escapeHtml = escapeHtml;
 window.showToast = showToast;
-window.supabase = supabase;
+
+console.log('✅ Config loaded');
