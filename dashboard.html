@@ -3,97 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yamify - Dashboard</title>
-    <link href="https://fonts.cdnfonts.com/css/circular-std" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Yamify - Musik Kamu</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root { --bg-base: #000; --bg-card: #121212; --bg-highlight: #1A1A1A; --text-primary: #fff; --text-secondary: #B3B3B3; --accent: #1DB954; --border: #282828; }
-        body { font-family: 'Circular Std', sans-serif; background: var(--bg-base); color: var(--text-primary); height: 100vh; overflow: hidden; }
+        :root { --bg: #000; --card: #121212; --text: #fff; --text-sec: #b3b3b3; --accent: #1DB954; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
         .app { display: flex; flex-direction: column; height: 100vh; }
-        .header { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 30; border-bottom: 1px solid var(--border); }
-        .logo { font-size: 26px; font-weight: 900; background: linear-gradient(135deg, #1DB954, #1ed760); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
-        .user-menu { display: none; align-items: center; gap: 8px; background: var(--bg-highlight); padding: 4px 12px 4px 6px; border-radius: 500px; }
+        .header { position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.95); padding: 12px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #282828; z-index: 30; }
+        .logo { font-size: 24px; font-weight: 900; background: linear-gradient(135deg, #1DB954, #1ed760); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .user-menu { display: none; align-items: center; gap: 8px; background: #1a1a1a; padding: 4px 12px; border-radius: 500px; }
         .user-avatar { width: 32px; height: 32px; border-radius: 50%; }
-        .logout-btn { background: none; border: none; font-size: 16px; cursor: pointer; padding: 6px; border-radius: 500px; color: var(--text-secondary); }
+        .logout-btn { background: none; border: none; color: #b3b3b3; font-size: 16px; cursor: pointer; padding: 4px; }
         .logout-btn:hover { color: #E5484D; }
-        .main { flex: 1; overflow-y: auto; padding: 80px 24px 100px; }
+        .main { flex: 1; overflow-y: auto; padding: 80px 20px 100px; }
         .panel { display: none; }
         .panel.active { display: block; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
-        .panel-header h1 { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .songs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
-        .song-card { background: var(--bg-card); border-radius: 10px; padding: 16px; cursor: pointer; transition: 0.2s; }
-        .song-card:hover { background: var(--bg-highlight); transform: translateY(-4px); }
-        .song-cover { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; margin-bottom: 12px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .panel-header h1 { font-size: 28px; }
+        .songs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+        .song-card { background: var(--card); border-radius: 10px; padding: 12px; cursor: pointer; transition: 0.2s; }
+        .song-card:hover { background: #1a1a1a; transform: translateY(-4px); }
+        .song-cover { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
         .song-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .song-artist { font-size: 12px; color: var(--text-secondary); }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(10,10,10,0.98); backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 16px 24px; z-index: 25; }
-        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 10px; cursor: pointer; flex: 1; }
-        .nav-btn .icon { font-size: 22px; color: var(--text-secondary); }
-        .nav-btn .label { font-size: 11px; color: var(--text-secondary); }
+        .song-artist { font-size: 12px; color: var(--text-sec); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #0a0a0a; border-top: 1px solid #282828; display: flex; justify-content: space-around; padding: 8px 16px 20px; z-index: 25; }
+        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 12px; cursor: pointer; flex: 1; }
+        .nav-btn .icon { font-size: 22px; color: #b3b3b3; }
+        .nav-btn .label { font-size: 10px; color: #b3b3b3; }
         .nav-btn.active .icon, .nav-btn.active .label { color: var(--accent); }
-        .now-playing-bar { position: fixed; bottom: 72px; left: 0; right: 0; background: rgba(18,18,18,0.98); backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding: 12px 20px; display: none; align-items: center; gap: 16px; z-index: 20; }
-        .now-playing-bar:not(.hidden) { display: flex; }
-        .player-cover { width: 52px; height: 52px; border-radius: 6px; }
-        .player-controls { display: flex; gap: 16px; }
-        .ctrl-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-primary); padding: 8px; }
-        .play-btn { background: var(--accent); width: 44px; height: 44px; border-radius: 50%; color: #000; }
-        .progress-container { flex: 1; height: 4px; background: var(--border); border-radius: 2px; }
+        .now-playing { position: fixed; bottom: 70px; left: 0; right: 0; background: #121212; border-top: 1px solid #282828; padding: 10px 16px; display: none; align-items: center; gap: 12px; z-index: 20; }
+        .now-playing:not(.hidden) { display: flex; }
+        .np-cover { width: 48px; height: 48px; border-radius: 6px; }
+        .np-controls { display: flex; gap: 16px; align-items: center; }
+        .ctrl-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: white; }
+        .play-btn { background: var(--accent); width: 40px; height: 40px; border-radius: 50%; color: black; }
+        .progress-bar { flex: 1; height: 4px; background: #282828; border-radius: 2px; }
         .progress-fill { width: 0%; height: 100%; background: var(--accent); border-radius: 2px; }
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; }
         .modal.hidden { display: none; }
-        .modal-content { background: var(--bg-card); border-radius: 16px; width: 90%; max-width: 450px; max-height: 80vh; overflow-y: auto; padding: 20px; }
-        .empty-state { text-align: center; padding: 60px 24px; color: var(--text-secondary); }
-        .upload-dropzone { border: 2px dashed var(--border); border-radius: 16px; padding: 48px 24px; text-align: center; margin: 20px; cursor: pointer; }
-        .upload-dropzone:hover { border-color: var(--accent); }
-        .form-group { margin-bottom: 20px; }
-        .form-group input, .form-group select { width: 100%; background: var(--bg-highlight); border: 1px solid var(--border); padding: 12px 16px; border-radius: 10px; color: var(--text-primary); }
-        .submit-btn { width: 100%; background: var(--accent); border: none; padding: 14px; border-radius: 500px; font-weight: 700; cursor: pointer; color: #000; }
-        .playlists-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
-        .playlist-card { background: var(--bg-card); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; }
-        .radio-stations { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-        .radio-card { background: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; cursor: pointer; }
-        .hidden { display: none; }
+        .modal-content { background: var(--card); border-radius: 16px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto; padding: 20px; }
+        .empty { text-align: center; padding: 40px; color: #b3b3b3; }
+        .upload-zone { border: 2px dashed #282828; border-radius: 16px; padding: 40px; text-align: center; margin-bottom: 20px; cursor: pointer; }
+        .upload-zone:hover { border-color: var(--accent); }
+        .form-group { margin-bottom: 16px; }
+        .form-group input, .form-group select { width: 100%; background: #1a1a1a; border: 1px solid #282828; padding: 12px; border-radius: 8px; color: white; }
+        .btn-submit { width: 100%; background: var(--accent); border: none; padding: 14px; border-radius: 500px; font-weight: 700; cursor: pointer; color: black; }
+        .playlists-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+        .playlist-card { background: var(--card); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; }
+        .radio-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .radio-card { background: var(--card); border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; }
         @media (max-width: 600px) { .songs-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="app">
-    <header class="header">
+    <div class="header">
         <div class="logo" onclick="showPanel('library')">yamify</div>
         <div class="user-menu" id="userMenu">
             <img class="user-avatar" id="userAvatar">
             <span class="user-name" id="userName"></span>
             <button class="logout-btn" id="logoutBtn">🚪</button>
         </div>
-    </header>
+    </div>
 
-    <main class="main">
+    <div class="main">
+        <!-- LIBRARY PANEL -->
         <div class="panel active" id="libraryPanel">
-            <div class="panel-header"><h1>Semua Lagu</h1><button id="sortBtn" style="background:var(--bg-card);border:1px solid var(--border);padding:8px 16px;border-radius:500px">Sort by 📅</button></div>
-            <div class="songs-grid" id="libraryGrid"></div>
+            <div class="panel-header"><h1>🎵 Semua Lagu</h1><button id="sortBtn" style="background:#1a1a1a;border:none;padding:8px 16px;border-radius:500px;color:white">Sort ↓</button></div>
+            <div class="songs-grid" id="libraryGrid"><div class="empty">Memuat...</div></div>
         </div>
-        <div class="panel" id="likedPanel"><div class="panel-header"><h1>Lagu Disukai</h1></div><div class="songs-grid" id="likedGrid"></div></div>
-        <div class="panel" id="playlistPanel"><div class="panel-header"><h1>Playlist Saya</h1><button id="createPlaylistBtn" style="background:var(--accent);border:none;padding:10px 20px;border-radius:500px;color:#000;font-weight:700">+ Buat</button></div><div class="playlists-grid" id="playlistsGrid"></div></div>
-        <div class="panel" id="recentPanel"><div class="panel-header"><h1>Baru Diputar</h1></div><div class="songs-grid" id="recentlyPlayedGrid"></div></div>
-        <div class="panel" id="topPanel"><div class="panel-header"><h1>Top Global</h1></div><div id="topGrid"></div></div>
-        <div class="panel" id="radioPanel"><div class="panel-header"><h1>Radio</h1></div><div class="radio-stations" id="radioStations"></div></div>
+
+        <!-- LIKED PANEL -->
+        <div class="panel" id="likedPanel">
+            <div class="panel-header"><h1>❤️ Lagu Disukai</h1></div>
+            <div class="songs-grid" id="likedGrid"></div>
+        </div>
+
+        <!-- PLAYLIST PANEL -->
+        <div class="panel" id="playlistPanel">
+            <div class="panel-header"><h1>📋 Playlist Saya</h1><button id="createPlaylistBtn" style="background:#1DB954;border:none;padding:8px 16px;border-radius:500px;font-weight:700">+ Baru</button></div>
+            <div class="playlists-grid" id="playlistsGrid"></div>
+        </div>
+
+        <!-- RECENT PANEL -->
+        <div class="panel" id="recentPanel">
+            <div class="panel-header"><h1>🕐 Baru Diputar</h1></div>
+            <div class="songs-grid" id="recentGrid"></div>
+        </div>
+
+        <!-- TOP PANEL -->
+        <div class="panel" id="topPanel">
+            <div class="panel-header"><h1>🏆 Top Global</h1></div>
+            <div id="topGrid"></div>
+        </div>
+
+        <!-- RADIO PANEL -->
+        <div class="panel" id="radioPanel">
+            <div class="panel-header"><h1>📻 Radio</h1></div>
+            <div class="radio-grid" id="radioGrid"></div>
+        </div>
+
+        <!-- UPLOAD PANEL -->
         <div class="panel" id="uploadPanel">
-            <div class="panel-header"><h1>Upload Musik</h1></div>
-            <div class="upload-dropzone" id="dropzone"><span>📁</span><p>Drag & drop MP3</p><button id="selectFileBtn" style="background:var(--accent);border:none;padding:10px 20px;border-radius:500px;margin-top:12px">Pilih File</button><input type="file" id="mp3File" accept="audio/mpeg" style="display:none"></div>
-            <div id="uploadDetails" style="display:none;padding:20px">
-                <div class="form-group"><label>Judul Lagu</label><input type="text" id="songTitle" placeholder="Judul"></div>
-                <div class="form-group"><label>Artis</label><input type="text" id="songArtist" placeholder="Artis"></div>
-                <div class="form-group"><label>Genre</label><select id="songGenre"><option>Pop</option><option>Rock</option><option>Hip Hop</option><option>Electronic</option></select></div>
-                <div class="form-group"><label>Cover</label><input type="file" id="coverFile" accept="image/*"><div id="coverPreview"></div></div>
-                <button class="submit-btn" id="uploadSubmitBtn">🚀 Upload</button>
+            <div class="panel-header"><h1>⬆️ Upload Musik</h1></div>
+            <div class="upload-zone" id="dropzone">
+                <span style="font-size:48px">📁</span>
+                <p>Drag & drop MP3 atau klik</p>
+                <input type="file" id="fileInput" accept="audio/mpeg" style="display:none">
+                <button id="selectFileBtn" style="background:#1DB954;border:none;padding:10px 20px;border-radius:500px;margin-top:12px;cursor:pointer">Pilih File</button>
+            </div>
+            <div id="uploadForm" style="display:none;padding:16px">
+                <div class="form-group"><input type="text" id="title" placeholder="Judul Lagu"></div>
+                <div class="form-group"><input type="text" id="artist" placeholder="Artis"></div>
+                <div class="form-group"><select id="genre"><option>Pop</option><option>Rock</option><option>Hip Hop</option><option>Electronic</option><option>Dangdut</option></select></div>
+                <div class="form-group"><input type="file" id="coverInput" accept="image/*"></div>
+                <div id="coverPreview"></div>
+                <button class="btn-submit" id="uploadBtn">🚀 Upload</button>
             </div>
             <div id="uploadStatus"></div>
         </div>
-    </main>
+    </div>
 
-    <nav class="bottom-nav">
+    <div class="bottom-nav">
         <button class="nav-btn active" data-panel="library"><span class="icon">🏠</span><span class="label">Beranda</span></button>
         <button class="nav-btn" data-panel="liked"><span class="icon">❤️</span><span class="label">Disukai</span></button>
         <button class="nav-btn" data-panel="playlist"><span class="icon">📋</span><span class="label">Playlist</span></button>
@@ -101,188 +133,22 @@
         <button class="nav-btn" data-panel="top"><span class="icon">🏆</span><span class="label">Top</span></button>
         <button class="nav-btn" data-panel="radio"><span class="icon">📻</span><span class="label">Radio</span></button>
         <button class="nav-btn" data-panel="upload"><span class="icon">⬆️</span><span class="label">Upload</span></button>
-    </nav>
+    </div>
 
-    <div id="nowPlayingBar" class="now-playing-bar hidden">
-        <img id="playerCover" class="player-cover">
-        <div><div id="playerTitle"></div><div id="playerArtist"></div></div>
-        <div class="player-controls"><button class="ctrl-btn" id="prevBtn">⏮</button><button class="ctrl-btn play-btn" id="playPauseBtn">▶</button><button class="ctrl-btn" id="nextBtn">⏭</button></div>
-        <div class="progress-container"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="now-playing hidden" id="nowPlaying">
+        <img class="np-cover" id="npCover">
+        <div style="flex:1"><div id="npTitle"></div><div id="npArtist" style="font-size:12px;color:#b3b3b3"></div></div>
+        <div class="np-controls">
+            <button class="ctrl-btn" id="prevBtn">⏮</button>
+            <button class="ctrl-btn play-btn" id="playPauseBtn">▶</button>
+            <button class="ctrl-btn" id="nextBtn">⏭</button>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     </div>
 </div>
 
 <script src="supabase-config.js"></script>
 <script src="auth.js"></script>
-<script src="upload.js"></script>
-<script src="player.js"></script>
-<script>
-    let currentSort = 'recent';
-    let searchQuery = '';
-
-    async function loadAllSongs() {
-        const { data } = await supabase.from('songs').select('*').order('created_at', { ascending: false });
-        window.allSongs = data || [];
-        renderLibrary();
-        renderTopCharts();
-    }
-
-    function renderLibrary() {
-        const container = document.getElementById('libraryGrid');
-        if (!container) return;
-        let songs = [...window.allSongs];
-        if (currentSort === 'az') songs.sort((a,b) => a.title.localeCompare(b.title));
-        else if (currentSort === 'plays') songs.sort((a,b) => (b.play_count||0) - (a.play_count||0));
-        else songs.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-        
-        if (!songs.length) { container.innerHTML = '<div class="empty-state">🎵 Belum ada lagu</div>'; return; }
-        container.innerHTML = songs.map(song => `
-            <div class="song-card" onclick="playSongById('${song.id}')">
-                <img class="song-cover" src="${song.cover_url || 'https://picsum.photos/200/200'}" onerror="this.src='https://picsum.photos/200/200'">
-                <div class="song-title">${escapeHtml(song.title)}</div>
-                <div class="song-artist">${escapeHtml(song.artist)}</div>
-            </div>
-        `).join('');
-    }
-
-    function renderTopCharts() {
-        const container = document.getElementById('topGrid');
-        if (!container) return;
-        const top = [...window.allSongs].sort((a,b) => (b.play_count||0) - (a.play_count||0)).slice(0,20);
-        if (!top.length) { container.innerHTML = '<div class="empty-state">🏆 Belum ada data</div>'; return; }
-        container.innerHTML = top.map((song,i) => `<div style="display:flex;align-items:center;gap:16px;padding:12px;background:var(--bg-card);border-radius:10px;margin-bottom:8px;cursor:pointer" onclick="playSongById('${song.id}')"><div style="font-size:24px;font-weight:800;color:var(--accent);width:50px">#${i+1}</div><img src="${song.cover_url||'https://picsum.photos/50/50'}" style="width:50px;height:50px;border-radius:6px"><div><div style="font-weight:600">${escapeHtml(song.title)}</div><div style="font-size:12px">${escapeHtml(song.artist)}</div></div><div style="margin-left:auto">${song.play_count||0} plays</div></div>`).join('');
-    }
-
-    async function loadLikedSongs() {
-        if (!window.currentUser) return;
-        const { data } = await supabase.from('liked_songs').select('song_id').eq('user_id', window.currentUser.id);
-        window.userLikedSongs.clear();
-        data?.forEach(item => window.userLikedSongs.add(item.song_id));
-        renderLikedSongs();
-    }
-
-    function renderLikedSongs() {
-        const container = document.getElementById('likedGrid');
-        if (!container) return;
-        const likedSongs = window.allSongs.filter(s => window.userLikedSongs.has(s.id));
-        if (!likedSongs.length) { container.innerHTML = '<div class="empty-state">❤️ Belum ada lagu disukai</div>'; return; }
-        container.innerHTML = likedSongs.map(song => `
-            <div class="song-card" onclick="playSongById('${song.id}')">
-                <img class="song-cover" src="${song.cover_url || 'https://picsum.photos/200/200'}">
-                <div class="song-title">${escapeHtml(song.title)}</div>
-                <div class="song-artist">${escapeHtml(song.artist)}</div>
-            </div>
-        `).join('');
-    }
-
-    async function loadUserPlaylists() {
-        if (!window.currentUser) return;
-        const { data } = await supabase.from('playlists').select('*').eq('user_id', window.currentUser.id);
-        window.userPlaylists = data || [];
-        renderPlaylists();
-    }
-
-    function renderPlaylists() {
-        const container = document.getElementById('playlistsGrid');
-        if (!container) return;
-        if (!window.userPlaylists.length) { container.innerHTML = '<div class="empty-state">📋 Belum ada playlist</div>'; return; }
-        container.innerHTML = window.userPlaylists.map(pl => `<div class="playlist-card" onclick="viewPlaylist('${pl.id}')"><div class="playlist-icon">📋</div><div class="playlist-name">${escapeHtml(pl.name)}</div></div>`).join('');
-    }
-
-    async function viewPlaylist(playlistId) {
-        const playlist = window.userPlaylists.find(p => p.id === playlistId);
-        if (!playlist) return;
-        const { data } = await supabase.from('playlist_songs').select('song_id').eq('playlist_id', playlistId);
-        const songIds = data?.map(item => item.song_id) || [];
-        const playlistSongs = window.allSongs.filter(s => songIds.includes(s.id));
-        let songsHtml = '';
-        if (!playlistSongs.length) songsHtml = '<div class="empty-state">Belum ada lagu</div>';
-        else {
-            songsHtml = playlistSongs.map(song => `<div style="display:flex;align-items:center;gap:12px;padding:10px;cursor:pointer" onclick="playSongById('${song.id}')"><img src="${song.cover_url||'https://picsum.photos/40/40'}" style="width:40px;height:40px;border-radius:6px"><div><div>${escapeHtml(song.title)}</div><div style="font-size:12px">${escapeHtml(song.artist)}</div></div></div>`).join('');
-        }
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `<div class="modal-content"><h3>${escapeHtml(playlist.name)}</h3><div>${songsHtml}</div><button onclick="this.closest('.modal').remove()" style="margin-top:16px;background:var(--accent);border:none;padding:10px;border-radius:500px;width:100%">Tutup</button></div>`;
-        document.body.appendChild(modal);
-        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-    }
-
-    async function createNewPlaylist() {
-        if (!window.currentUser) { showToast('Login dulu', 1500); return; }
-        const name = prompt('Nama playlist:');
-        if (!name) return;
-        await supabase.from('playlists').insert([{ name: name, user_id: window.currentUser.id }]);
-        showToast('Playlist dibuat', 1500);
-        await loadUserPlaylists();
-    }
-
-    function playSongById(id) {
-        const song = window.allSongs.find(s => s.id === id);
-        if (song && window.playSong) window.playSong(song);
-    }
-
-    function showPanel(panel) {
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.getElementById(`${panel}Panel`).classList.add('active');
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector(`.nav-btn[data-panel="${panel}"]`).classList.add('active');
-        if (panel === 'liked') renderLikedSongs();
-        if (panel === 'top') renderTopCharts();
-        if (panel === 'playlist') renderPlaylists();
-        if (panel === 'radio') loadRadioStations();
-    }
-
-    function loadRadioStations() {
-        const stations = ['Pop', 'Rock', 'Hip Hop', 'Electronic', 'Jazz', 'Dangdut'];
-        const container = document.getElementById('radioStations');
-        if (!container) return;
-        container.innerHTML = stations.map(s => `<div class="radio-card" onclick="startRadio('${s}')"><div class="radio-icon">📻</div><div class="radio-name">${s}</div></div>`).join('');
-    }
-
-    function startRadio(genre) {
-        let radioSongs = [...window.allSongs];
-        if (!radioSongs.length) { showToast('Belum ada lagu', 1500); return; }
-        for (let i = radioSongs.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [radioSongs[i], radioSongs[j]] = [radioSongs[j], radioSongs[i]];
-        }
-        window.playSong(radioSongs[0]);
-        if (window.radioInterval) clearInterval(window.radioInterval);
-        window.radioInterval = setInterval(() => {
-            if (window.audioElement?.ended) {
-                const next = radioSongs[Math.floor(Math.random() * radioSongs.length)];
-                if (next) window.playSong(next);
-            }
-        }, 1000);
-        showToast(`Radio ${genre}`, 1500);
-    }
-
-    document.getElementById('sortBtn')?.addEventListener('click', () => {
-        const sorts = ['recent', 'az', 'plays'];
-        currentSort = sorts[(sorts.indexOf(currentSort) + 1) % sorts.length];
-        renderLibrary();
-    });
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => showPanel(btn.dataset.panel)));
-    document.getElementById('createPlaylistBtn')?.addEventListener('click', createNewPlaylist);
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
-
-    window.loadAllSongs = loadAllSongs;
-    window.loadLikedSongs = loadLikedSongs;
-    window.loadUserPlaylists = loadUserPlaylists;
-    window.renderLibrary = renderLibrary;
-    window.renderTopCharts = renderTopCharts;
-    window.renderLikedSongs = renderLikedSongs;
-    window.renderPlaylists = renderPlaylists;
-    window.playSongById = playSongById;
-    window.showPanel = showPanel;
-    window.loadRadioStations = loadRadioStations;
-    window.startRadio = startRadio;
-    window.createNewPlaylist = createNewPlaylist;
-    window.viewPlaylist = viewPlaylist;
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        await checkAuthAndLoad();
-        loadRadioStations();
-    });
-</script>
+<script src="main.js"></script>
 </body>
 </html>
