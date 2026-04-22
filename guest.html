@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Yamify - Mode Tamu</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; height: 100vh; overflow: hidden; }
+        .app-container { display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 85px; background: rgba(0,0,0,0.95); border-right: 1px solid rgba(29,185,84,0.2); display: flex; flex-direction: column; padding: 20px 8px; align-items: center; }
+        .logo span { font-size: 32px; margin-bottom: 30px; }
+        .guest-badge { background: linear-gradient(135deg, #1DB95420, #1ed76010); padding: 12px; border-radius: 20px; margin-bottom: 30px; border: 1px solid #1DB95430; }
+        .guest-badge span { font-size: 28px; display: block; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 12px 8px; border-radius: 16px; color: #b3b3b3; cursor: pointer; transition: 0.2s; width: 100%; }
+        .nav-item:hover { background: rgba(29,185,84,0.1); color: #1DB954; }
+        .nav-item.active { background: rgba(29,185,84,0.2); color: #1DB954; }
+        .nav-item .icon { font-size: 24px; }
+        .nav-item .text { font-size: 10px; }
+        .login-prompt { margin-top: auto; padding: 16px 8px; background: rgba(29,185,84,0.1); border-radius: 20px; text-align: center; width: 100%; }
+        .login-prompt span { font-size: 24px; }
+        .login-prompt p { font-size: 9px; color: #b3b3b3; margin: 6px 0; }
+        .login-prompt button { background: #1DB954; border: none; padding: 8px 12px; border-radius: 30px; color: black; font-weight: 700; font-size: 11px; cursor: pointer; }
+        .main-content { flex: 1; overflow-y: auto; background: linear-gradient(180deg, #121212, #0a0a0a); padding: 16px; padding-bottom: 80px; }
+        .welcome-banner { background: linear-gradient(135deg, #1DB954, #0f5c2e); border-radius: 24px; padding: 20px; margin-bottom: 24px; }
+        .welcome-banner h2 { font-size: 18px; font-weight: 700; }
+        .welcome-banner p { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+        .welcome-banner button { background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); border: none; padding: 8px 20px; border-radius: 30px; color: white; font-weight: 600; font-size: 12px; margin-top: 12px; cursor: pointer; }
+        .panel { display: none; animation: fadeIn 0.3s; }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .panel-header h1 { font-size: 22px; margin-bottom: 20px; }
+        .songs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .song-card { background: #181818; border-radius: 16px; padding: 12px; cursor: pointer; transition: 0.2s; }
+        .song-card:active { transform: scale(0.97); }
+        .image-wrapper { position: relative; margin-bottom: 10px; }
+        .song-cover { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+        .play-overlay { position: absolute; bottom: 8px; right: 8px; background: #1DB954; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; }
+        .song-card:active .play-overlay { opacity: 1; }
+        .song-title { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .song-artist { font-size: 11px; color: #b3b3b3; }
+        .empty-state { text-align: center; padding: 40px; color: #6a6a6a; }
+        .empty-state span { font-size: 48px; display: block; margin-bottom: 12px; }
+        @media (min-width: 600px) { .songs-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 900px) { .songs-grid { grid-template-columns: repeat(4, 1fr); } }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo"><span>🎵</span></div>
+            <div class="guest-badge"><span>👤</span></div>
+            <div class="nav-item active" data-panel="library"><span class="icon">📚</span><span class="text">Library</span></div>
+            <div class="nav-item" data-panel="top"><span class="icon">🏆</span><span class="text">Top</span></div>
+            <div class="login-prompt"><span>🔐</span><p>Login untuk upload</p><button id="loginBtn">Login</button></div>
+        </div>
+        <div class="main-content">
+            <div class="welcome-banner"><div><h2>🎧 Mode Tamu</h2><p>Dengar gratis • Login untuk fitur lengkap</p></div><button id="loginBtn2">Login Sekarang →</button></div>
+            <div id="libraryPanel" class="panel active"><div class="panel-header"><h1>📚 Library</h1></div><div id="libraryGrid" class="songs-grid"><div class="empty-state"><span>🎵</span>Memuat...</div></div></div>
+            <div id="topPanel" class="panel"><div class="panel-header"><h1>🏆 Top Global</h1></div><div id="topGrid" class="songs-grid"><div class="empty-state"><span>🏆</span>Memuat...</div></div></div>
+        </div>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://vsonrlptlfuomdawpewa.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_s6ifPt76DmLW9DJaUD_6cw_SQnbiblp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let allSongs = [], audio = null, currentSong = null, isPlaying = false;
+
+        function formatDuration(s) { if(!s) return '0:00'; const m=Math.floor(s/60), sc=Math.floor(s%60); return `${m}:${sc.toString().padStart(2,'0')}`; }
+        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+        async function loadSongs() {
+            const { data } = await supabase.from('songs').select('*').order('created_at', { ascending: false });
+            if(data) { allSongs = data; renderLibrary(); renderTop(); }
+        }
+        function renderLibrary() {
+            const c = document.getElementById('libraryGrid');
+            if(!allSongs.length) { c.innerHTML='<div class="empty-state"><span>🎵</span><br>Belum ada lagu</div>'; return; }
+            c.innerHTML = allSongs.map(s=>`<div class="song-card" onclick="playSong('${s.id}')"><div class="image-wrapper"><img class="song-cover" src="${s.cover_url||'https://picsum.photos/200/200'}"><div class="play-overlay"><span>▶️</span></div></div><div class="song-title">${escapeHtml(s.title)}</div><div class="song-artist">${escapeHtml(s.artist)}</div></div>`).join('');
+        }
+        function renderTop() {
+            const c = document.getElementById('topGrid');
+            const top = [...allSongs].sort((a,b)=>(b.play_count||0)-(a.play_count||0)).slice(0,20);
+            if(!top.length) { c.innerHTML='<div class="empty-state"><span>🏆</span><br>Belum ada data</div>'; return; }
+            c.innerHTML = top.map((s,i)=>`<div class="song-card" onclick="playSong('${s.id}')"><div class="image-wrapper"><img class="song-cover" src="${s.cover_url||'https://picsum.photos/200/200'}"><div class="play-overlay"><span>▶️</span></div></div><div class="song-title">${i+1}. ${escapeHtml(s.title)}</div><div class="song-artist">${escapeHtml(s.artist)}</div></div>`).join('');
+        }
+        function playSong(id) {
+            const s = allSongs.find(x=>x.id===id);
+            if(!s) return;
+            if(!audio) { audio = new Audio(); audio.addEventListener('ended',()=>{ isPlaying=false; }); }
+            if(currentSong?.id===id && audio.src) { isPlaying?audio.pause():audio.play(); isPlaying=!isPlaying; return; }
+            currentSong = s; audio.src = s.mp3_url; audio.play(); isPlaying=true;
+            supabase.from('songs').update({ play_count: (s.play_count||0)+1 }).eq('id', id);
+        }
+        document.querySelectorAll('.nav-item').forEach(item=>{ item.addEventListener('click',()=>{ const p=item.dataset.panel; document.querySelectorAll('.panel').forEach(pa=>pa.classList.remove('active')); document.getElementById(`${p}Panel`).classList.add('active'); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); item.classList.add('active'); }); });
+        async function handleLogin() { await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: '/dashboard.html', skipNonce: true } }); }
+        document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+        document.getElementById('loginBtn2')?.addEventListener('click', handleLogin);
+        loadSongs();
+        window.playSong = playSong;
+    </script>
+</body>
+</html>
