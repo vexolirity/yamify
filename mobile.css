@@ -1,0 +1,209 @@
+/* ============================================ */
+/* YAMIFY MOBILE - Touch Optimization          */
+/* ============================================ */
+
+/* Safe Area untuk Notch & Gesture Bar */
+@supports (padding: max(0px)) {
+    .bottom-nav {
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+    
+    .now-playing-bar {
+        bottom: max(72px, calc(env(safe-area-inset-bottom) + 20px));
+    }
+    
+    .main {
+        padding-bottom: max(100px, calc(env(safe-area-inset-bottom) + 80px));
+    }
+    
+    .header {
+        padding-top: max(12px, env(safe-area-inset-top));
+    }
+}
+
+/* Touch Target Minimal 44px (Apple HIG) */
+button,
+.nav-btn,
+.song-card,
+.playlist-card,
+.ctrl-btn,
+.create-btn,
+.like-mini,
+.close-modal,
+.icon-btn,
+.logout-btn,
+.period-btn,
+.sort-btn,
+.clear-btn,
+.radio-card,
+.playlist-list-item,
+.queue-item,
+.top-chart-item,
+.eq-band input,
+.upload-dropzone,
+.theme-btn,
+.danger-btn {
+    min-height: 44px;
+}
+
+/* Haptic Feedback untuk Mobile */
+button:active,
+.nav-btn:active,
+.song-card:active,
+.playlist-card:active,
+.radio-card:active,
+.queue-item:active,
+.top-chart-item:active {
+    transform: scale(0.97);
+    transition: transform 0.05s;
+}
+
+/* Disable Double-Tap Zoom */
+button,
+.nav-btn,
+.song-card,
+.playlist-card,
+.ctrl-btn,
+.radio-card {
+    touch-action: manipulation;
+}
+
+/* Prevent Pull-to-Refresh on Player */
+.now-playing-bar {
+    touch-action: pan-x;
+}
+
+/* Better Scroll Behavior */
+.main {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Remove Tap Highlight */
+.song-card,
+.nav-btn,
+.ctrl-btn,
+.playlist-card,
+.radio-card,
+.queue-item,
+.top-chart-item,
+.playlist-list-item {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Large Touch Area untuk Mobile */
+@media (max-width: 600px) {
+    .nav-btn {
+        padding: 10px 8px;
+    }
+    
+    .ctrl-btn {
+        padding: 10px;
+    }
+    
+    .like-mini {
+        padding: 12px;
+    }
+    
+    .close-modal {
+        padding: 8px;
+    }
+    
+    /* Increase font size for readability */
+    .song-title {
+        font-size: 14px;
+    }
+    
+    .song-artist {
+        font-size: 12px;
+    }
+    
+    .player-title {
+        font-size: 13px;
+    }
+    
+    .player-artist {
+        font-size: 11px;
+    }
+}
+
+/* Loading Skeleton untuk Mobile */
+.skeleton-card {
+    background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-highlight) 50%, var(--bg-card) 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Full Bleed di Mobile */
+@media (max-width: 480px) {
+    body {
+        overflow-x: hidden;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .upload-dropzone {
+        margin: 12px;
+        padding: 32px 16px;
+    }
+    
+    .eq-bands {
+        gap: 12px;
+    }
+    
+    .eq-band label {
+        width: 35px;
+        font-size: 11px;
+    }
+    
+    .theme-options {
+        flex-direction: column;
+    }
+    
+    .theme-btn {
+        padding: 12px;
+    }
+}
+
+/* Active State Feedback */
+.nav-btn:active .icon,
+.nav-btn:active .label {
+    color: var(--accent);
+}
+
+/* Pull to Refresh Indicator (Optional) */
+.pull-to-refresh {
+    position: fixed;
+    top: -50px;
+    left: 0;
+    right: 0;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card);
+    transition: top 0.2s;
+    z-index: 100;
+}
+
+.pull-to-refresh.active {
+    top: 0;
+}
+
+/* Better Modal Scrolling */
+.modal-content {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent Body Scroll When Modal Open */
+body.modal-open {
+    overflow: hidden;
+}
