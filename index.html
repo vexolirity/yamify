@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yamify - Streaming Musik</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at 30% 10%, #0a0a0a 0%, #000000 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { max-width: 450px; width: 100%; }
+        .card {
+            background: rgba(18,18,18,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 40px;
+            padding: 40px 28px;
+            text-align: center;
+            border: 1px solid rgba(29,185,84,0.3);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .logo h1 {
+            font-size: 48px;
+            background: linear-gradient(135deg, #1DB954, #1ed760);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .logo p { color: #b3b3b3; font-size: 13px; margin-bottom: 40px; }
+        .btn-google {
+            width: 100%;
+            background: white;
+            color: black;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+        .btn-google:hover { background: #f0f0f0; transform: scale(1.02); }
+        .btn-guest {
+            width: 100%;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-guest:hover { background: rgba(29,185,84,0.2); border-color: #1DB954; }
+        .divider { margin: 28px 0; text-align: center; color: #4a4a4a; font-size: 11px; }
+        .features { display: flex; justify-content: center; gap: 16px; margin-top: 32px; flex-wrap: wrap; }
+        .feature { color: #b3b3b3; font-size: 11px; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 30px; }
+        .status { margin-top: 20px; padding: 12px; border-radius: 20px; display: none; }
+        .status.error { background: rgba(220,38,38,0.2); color: #ef4444; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo"><h1>🎧 YAMIFY</h1><p>Musik tanpa batas • Upload & Putar</p></div>
+            <button class="btn-google" id="googleLoginBtn">🔐 Login dengan Google</button>
+            <button class="btn-guest" id="guestBtn">👤 Mode Tamu</button>
+            <div class="divider">──────── ★ ────────</div>
+            <div class="features">
+                <div class="feature">🎵 Upload</div>
+                <div class="feature">❤️ Like</div>
+                <div class="feature">📋 Playlist</div>
+                <div class="feature">🎚️ EQ</div>
+                <div class="feature">📻 Radio</div>
+                <div class="feature">🏆 Top Chart</div>
+            </div>
+            <div id="statusMessage" class="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://vsonrlptlfuomdawpewa.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_s6ifPt76DmLW9DJaUD_6cw_SQnbiblp';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function handleGoogleLogin() {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = 'status';
+            statusDiv.style.display = 'none';
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: window.location.origin + '/dashboard.html' }
+                });
+                if (error) throw error;
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = '❌ Gagal login: ' + error.message;
+            }
+        }
+
+        function handleGuest() {
+            localStorage.setItem('yamify_guest', 'true');
+            window.location.href = '/dashboard.html';
+        }
+
+        document.getElementById('googleLoginBtn').addEventListener('click', handleGoogleLogin);
+        document.getElementById('guestBtn').addEventListener('click', handleGuest);
+
+        window.addEventListener('load', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) window.location.href = '/dashboard.html';
+        });
+    </script>
+</body>
+</html>
