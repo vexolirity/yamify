@@ -1,30 +1,40 @@
 // ============================================
-// YAMIFY ULTIMATE - Authentication Module FIXED
+// YAMIFY - Authentication Module FINAL
 // ============================================
+
+async function getCurrentUser() {
+    const { data: { session } } = await supabase.auth.getSession();
+    window.currentUser = session?.user || null;
+    return window.currentUser;
+}
 
 async function checkAuthAndLoad() {
     await getCurrentUser();
     
-    if (currentUser) {
+    if (window.currentUser) {
         const userAvatarEl = document.getElementById('userAvatar');
         const userNameEl = document.getElementById('userName');
         const userMenu = document.getElementById('userMenu');
         
         if (userAvatarEl) {
-            const avatarUrl = currentUser.user_metadata?.avatar_url;
-            userAvatarEl.src = avatarUrl || `https://ui-avatars.com/api/?background=1DB954&color=fff&name=${currentUser.email}&size=32&rounded=true`;
+            const avatarUrl = window.currentUser.user_metadata?.avatar_url;
+            userAvatarEl.src = avatarUrl || `https://ui-avatars.com/api/?background=1DB954&color=fff&name=${window.currentUser.email}&size=32&rounded=true`;
         }
         
         if (userNameEl) {
-            const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0];
+            const name = window.currentUser.user_metadata?.full_name || window.currentUser.email?.split('@')[0];
             userNameEl.textContent = name;
         }
         
         if (userMenu) userMenu.style.display = 'flex';
         
-        await loadLikedSongs();
-        await loadUserPlaylists();
-        loadUserSettings();
+        await window.loadAllSongs();
+        await window.loadLikedSongs();
+        await window.loadUserPlaylists();
+        
+        // Tampilkan upload button
+        const uploadNav = document.querySelector('.nav-btn[data-panel="upload"]');
+        if (uploadNav) uploadNav.style.display = 'flex';
         
         return true;
     }
@@ -37,13 +47,15 @@ async function checkAuthAndLoad() {
     
     if (guestMode) {
         showToast('Mode Tamu - Login untuk upload & playlist', 3000);
+        const uploadNav = document.querySelector('.nav-btn[data-panel="upload"]');
+        if (uploadNav) uploadNav.style.display = 'none';
     }
     
     return false;
 }
 
 async function ensureAuth() {
-    if (!currentUser) {
+    if (!window.currentUser) {
         showToast('Login dulu untuk fitur ini', 2000, 'error');
         setTimeout(() => window.location.href = '/index.html', 1500);
         return false;
@@ -51,55 +63,43 @@ async function ensureAuth() {
     return true;
 }
 
-function loadUserSettings() {
-    const savedTheme = loadFromLocalStorage('theme', 'dark');
-    const savedQuality = loadFromLocalStorage('quality', 'medium');
-    const savedDataSaver = loadFromLocalStorage('dataSaver', false);
-    const savedCrossfade = loadFromLocalStorage('crossfade', 0);
-    
-    currentQuality = savedQuality;
-    dataSaverMode = savedDataSaver;
-    crossfadeDuration = savedCrossfade;
-    
-    applyTheme(savedTheme);
-}
-
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     saveToLocalStorage('theme', theme);
-    
     document.querySelectorAll('.theme-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.dataset.theme === theme) {
-            btn.classList.add('active');
-        }
+        if (btn.dataset.theme === theme) btn.classList.add('active');
     });
 }
 
-function logout() {
-    logoutUser();
+async function logout() {
+    if (window.radioInterval) clearInterval(window.radioInterval);
+    if (window.audioElement) {
+        window.audioElement.pause();
+        window.audioElement.src = '';
+    }
+    await supabase.auth.signOut();
+    localStorage.removeItem('yamify_guest');
+    window.location.href = '/index.html';
 }
 
-// ========== FIX LOGIN GOOGLE ==========
 async function handleGoogleLogin() {
     try {
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: window.location.origin + '/dashboard.html'
-            }
+            options: { redirectTo: window.location.origin + '/dashboard.html' }
         });
         if (error) throw error;
     } catch (error) {
-        console.error('Login error:', error);
         showToast('Gagal login: ' + error.message, 3000, 'error');
     }
 }
 
-// ========== EXPORT GLOBAL ==========
 window.ensureAuth = ensureAuth;
 window.applyTheme = applyTheme;
 window.handleGoogleLogin = handleGoogleLogin;
+window.getCurrentUser = getCurrentUser;
+window.logout = logout;
 
 document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logoutBtn');
