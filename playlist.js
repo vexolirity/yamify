@@ -1,16 +1,16 @@
 // ============================================
-// YAMIFY ULTIMATE - Playlist Module FIXED
+// YAMIFY - Playlist Module FINAL
 // ============================================
 
 let currentPlaylistId = null;
 
-async function loadUserPlaylists() {
-    if (!currentUser) return;
+window.loadUserPlaylists = async function() {
+    if (!window.currentUser) return;
     
     const { data, error } = await supabase
         .from('playlists')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', window.currentUser.id)
         .order('created_at', { ascending: false });
     
     if (error) {
@@ -18,20 +18,20 @@ async function loadUserPlaylists() {
         return;
     }
     
-    userPlaylists = data || [];
+    window.userPlaylists = data || [];
     renderPlaylists();
-}
+};
 
 function renderPlaylists() {
     const container = document.getElementById('playlistsGrid');
     if (!container) return;
     
-    if (userPlaylists.length === 0) {
+    if (window.userPlaylists.length === 0) {
         container.innerHTML = '<div class="empty-state"><span>📋</span><p>Belum ada playlist</p><button onclick="window.createNewPlaylist()">+ Buat Playlist</button></div>';
         return;
     }
     
-    container.innerHTML = userPlaylists.map(pl => `
+    container.innerHTML = window.userPlaylists.map(pl => `
         <div class="playlist-card" onclick="window.viewPlaylist('${pl.id}')">
             <div class="playlist-icon">📋</div>
             <div class="playlist-name">${escapeHtml(pl.name)}</div>
@@ -40,62 +40,30 @@ function renderPlaylists() {
     `).join('');
 }
 
-async function createNewPlaylist() {
-    if (!await ensureAuth()) return;
+window.createNewPlaylist = async function() {
+    if (!window.currentUser) {
+        showToast('Login dulu', 1500);
+        return;
+    }
     
     const name = prompt('Nama playlist:', `Playlist ${new Date().toLocaleDateString('id-ID')}`);
     if (!name || !name.trim()) return;
     
     const { error } = await supabase
         .from('playlists')
-        .insert([{ name: name.trim(), user_id: currentUser.id }]);
+        .insert([{ name: name.trim(), user_id: window.currentUser.id }]);
     
     if (error) {
         showToast('Gagal buat playlist: ' + error.message, 3000, 'error');
     } else {
-        showToast(`Playlist "${name}" dibuat`, 2000, 'success');
-        await loadUserPlaylists();
+        showToast(`Playlist "${name}" dibuat`, 2000);
+        await window.loadUserPlaylists();
     }
-}
+};
 
-async function deletePlaylist(playlistId, playlistName) {
-    if (!confirm(`Hapus playlist "${playlistName}"?`)) return;
-    
-    await supabase.from('playlist_songs').delete().eq('playlist_id', playlistId);
-    const { error } = await supabase.from('playlists').delete().eq('id', playlistId);
-    
-    if (error) {
-        showToast('Gagal hapus: ' + error.message, 3000, 'error');
-    } else {
-        showToast('Playlist dihapus', 2000);
-        await loadUserPlaylists();
-        closePlaylistDetail();
-    }
-}
-
-async function renamePlaylist(playlistId, currentName) {
-    const newName = prompt('Nama baru:', currentName);
-    if (!newName || newName === currentName) return;
-    
-    const { error } = await supabase
-        .from('playlists')
-        .update({ name: newName })
-        .eq('id', playlistId);
-    
-    if (error) {
-        showToast('Gagal rename: ' + error.message, 3000, 'error');
-    } else {
-        showToast('Playlist diubah', 2000);
-        await loadUserPlaylists();
-        if (currentPlaylistId === playlistId) {
-            document.getElementById('playlistDetailName').innerText = newName;
-        }
-    }
-}
-
-async function viewPlaylist(playlistId) {
+window.viewPlaylist = async function(playlistId) {
     currentPlaylistId = playlistId;
-    const playlist = userPlaylists.find(p => p.id === playlistId);
+    const playlist = window.userPlaylists.find(p => p.id === playlistId);
     if (!playlist) return;
     
     const { data, error } = await supabase
@@ -109,122 +77,71 @@ async function viewPlaylist(playlistId) {
     }
     
     const songIds = data?.map(item => item.song_id) || [];
-    const playlistSongs = allSongs.filter(song => songIds.includes(song.id));
+    const playlistSongs = window.allSongs.filter(song => songIds.includes(song.id));
     
-    const modal = document.getElementById('playlistDetailModal');
-    const nameEl = document.getElementById('playlistDetailName');
-    const songsContainer = document.getElementById('playlistDetailSongs');
+    const songsHtml = playlistSongs.length === 0 
+        ? '<div class="empty-state">Belum ada lagu</div>'
+        : playlistSongs.map(song => `
+            <div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--border);cursor:pointer" onclick="window.playSongById('${song.id}')">
+                <img src="${song.cover_url || 'https://picsum.photos/40/40'}" style="width:40px;height:40px;border-radius:6px">
+                <div style="flex:1"><div style="font-weight:600">${escapeHtml(song.title)}</div><div style="font-size:12px;color:var(--text-secondary)">${escapeHtml(song.artist)}</div></div>
+                <button onclick="event.stopPropagation(); window.removeSongFromPlaylist('${playlistId}', '${song.id}')" style="background:none;border:none;font-size:18px;cursor:pointer">🗑️</button>
+            </div>
+        `).join('');
     
-    if (nameEl) nameEl.innerText = playlist.name;
-    
-    if (songsContainer) {
-        if (playlistSongs.length === 0) {
-            songsContainer.innerHTML = '<div class="empty-state" style="padding:40px;">Belum ada lagu</div>';
-        } else {
-            songsContainer.innerHTML = playlistSongs.map(song => `
-                <div class="playlist-song-item" onclick="window.playSongById('${song.id}')">
-                    <img class="playlist-song-cover" src="${song.cover_url || 'https://picsum.photos/40/40'}" onerror="this.src='https://picsum.photos/40/40'">
-                    <div class="playlist-song-info">
-                        <div class="playlist-song-title">${escapeHtml(song.title)}</div>
-                        <div class="playlist-song-artist">${escapeHtml(song.artist)}</div>
-                    </div>
-                    <button class="playlist-song-remove" onclick="event.stopPropagation(); window.removeSongFromPlaylist('${playlistId}', '${song.id}')">🗑️</button>
-                </div>
-            `).join('');
-        }
-    }
-    
-    modal.classList.remove('hidden');
-    
-    const renameBtn = document.getElementById('renamePlaylistBtn');
-    const deleteBtn = document.getElementById('deletePlaylistBtn');
-    
-    if (renameBtn) renameBtn.onclick = () => renamePlaylist(playlistId, playlist.name);
-    if (deleteBtn) deleteBtn.onclick = () => deletePlaylist(playlistId, playlist.name);
-}
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'tempPlaylistModal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:500px">
+            <div class="modal-header"><h3>${escapeHtml(playlist.name)}</h3><button onclick="this.closest('.modal').remove()">✕</button></div>
+            <div style="padding:16px;max-height:400px;overflow-y:auto">${songsHtml}</div>
+            <div style="padding:16px;display:flex;gap:12px;border-top:1px solid var(--border)">
+                <button onclick="window.renamePlaylist('${playlistId}', '${escapeHtml(playlist.name)}')" style="flex:1;background:var(--bg-highlight);border:none;padding:10px;border-radius:500px;cursor:pointer">✏️ Rename</button>
+                <button onclick="window.deletePlaylist('${playlistId}', '${escapeHtml(playlist.name)}')" style="flex:1;background:rgba(229,72,77,0.15);border:1px solid #E5484D;padding:10px;border-radius:500px;color:#E5484D;cursor:pointer">🗑️ Hapus</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+};
 
-async function addSongToPlaylist(songId, playlistId) {
-    const { error } = await supabase
-        .from('playlist_songs')
-        .insert([{ playlist_id: playlistId, song_id: songId }]);
+window.renamePlaylist = async function(playlistId, currentName) {
+    const newName = prompt('Nama baru:', currentName);
+    if (!newName || newName === currentName) return;
     
-    if (error && error.code !== '23505') {
-        showToast('Gagal menambah: ' + error.message, 2000, 'error');
-        return false;
-    }
-    return true;
-}
-
-async function removeSongFromPlaylist(playlistId, songId) {
     const { error } = await supabase
+        .from('playlists')
+        .update({ name: newName })
+        .eq('id', playlistId);
+    
+    if (!error) {
+        showToast('Playlist diubah', 2000);
+        await window.loadUserPlaylists();
+        document.getElementById('tempPlaylistModal')?.remove();
+    }
+};
+
+window.deletePlaylist = async function(playlistId, playlistName) {
+    if (!confirm(`Hapus playlist "${playlistName}"?`)) return;
+    
+    await supabase.from('playlist_songs').delete().eq('playlist_id', playlistId);
+    const { error } = await supabase.from('playlists').delete().eq('id', playlistId);
+    
+    if (!error) {
+        showToast('Playlist dihapus', 2000);
+        await window.loadUserPlaylists();
+        document.getElementById('tempPlaylistModal')?.remove();
+    }
+};
+
+window.removeSongFromPlaylist = async function(playlistId, songId) {
+    await supabase
         .from('playlist_songs')
         .delete()
         .eq('playlist_id', playlistId)
         .eq('song_id', songId);
-    
-    if (error) {
-        showToast('Gagal hapus: ' + error.message, 2000, 'error');
-    } else {
-        showToast('Lagu dihapus dari playlist', 1500);
-        viewPlaylist(playlistId);
-    }
-}
-
-async function showAddToPlaylist(songId, songTitle) {
-    if (!await ensureAuth()) return;
-    
-    await loadUserPlaylists();
-    
-    if (userPlaylists.length === 0) {
-        const create = confirm('Belum ada playlist. Buat playlist baru?');
-        if (create) await createNewPlaylist();
-        await loadUserPlaylists();
-        if (userPlaylists.length === 0) return;
-    }
-    
-    const modal = document.getElementById('addToPlaylistModal');
-    const listContainer = document.getElementById('playlistList');
-    
-    listContainer.innerHTML = userPlaylists.map(pl => `
-        <div class="playlist-list-item" onclick="window.addToExistingPlaylist('${songId}', '${pl.id}', '${escapeHtml(pl.name)}')">
-            <span class="playlist-list-icon">📋</span>
-            <span class="playlist-list-name">${escapeHtml(pl.name)}</span>
-        </div>
-    `).join('');
-    
-    modal.classList.remove('hidden');
-    
-    const createBtn = document.getElementById('createNewFromModal');
-    if (createBtn) {
-        createBtn.onclick = async () => {
-            await createNewPlaylist();
-            await loadUserPlaylists();
-            showAddToPlaylist(songId, songTitle);
-        };
-    }
-}
-
-async function addToExistingPlaylist(songId, playlistId, playlistName) {
-    const success = await addSongToPlaylist(songId, playlistId);
-    if (success) {
-        showToast(`Ditambahkan ke ${playlistName}`, 1500);
-        closeAddToPlaylist();
-    }
-}
-
-// ========== EXPORT GLOBAL ==========
-window.loadUserPlaylists = loadUserPlaylists;
-window.renderPlaylists = renderPlaylists;
-window.createNewPlaylist = createNewPlaylist;
-window.viewPlaylist = viewPlaylist;
-window.addSongToPlaylist = addSongToPlaylist;
-window.removeSongFromPlaylist = removeSongFromPlaylist;
-window.showAddToPlaylist = showAddToPlaylist;
-window.addToExistingPlaylist = addToExistingPlaylist;
-
-document.addEventListener('DOMContentLoaded', () => {
-    const createBtn = document.getElementById('createPlaylistBtn');
-    if (createBtn) createBtn.addEventListener('click', createNewPlaylist);
-});
+    showToast('Lagu dihapus dari playlist', 1500);
+    window.viewPlaylist(playlistId);
+};
 
 console.log('✅ Playlist module ready');
